@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+:root {
+  --garden-green: #3a7d44;
+  --garden-green-dark: #2c5f34;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
