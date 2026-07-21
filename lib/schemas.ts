@@ -175,6 +175,32 @@ export const chatTools = [
     },
   },
   {
+    name: "log_event",
+    description:
+      "Record a dated care or observation event for a bed: fertilizing, watering, a harvest (partial or final), or an issue (pests, disease, wilting, damage). Use for anything the gardener reports doing or noticing that isn't a planting/removal. For a final harvest that finishes the plant, set final_harvest true — it also closes out the planting record.",
+    strict: true,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        bed_id: { type: "integer", description: "The bed's numeric id from the garden context" },
+        type: { type: "string", enum: ["fertilize", "water", "harvest", "issue"] },
+        crop: { type: "string", description: "The crop involved; empty string for whole-bed events like watering" },
+        event_date: { type: "string", format: "date", description: "YYYY-MM-DD. Use today unless the gardener says otherwise." },
+        details: {
+          type: "string",
+          description:
+            "Specifics worth remembering: fertilizer type and amount, harvest quantity ('2 lb', 'first picking', 'last of them'), or the issue observed ('aphids on undersides', 'wilting despite moist soil').",
+        },
+        final_harvest: {
+          type: "boolean",
+          description: "true only for type=harvest when the plant is finished — also marks the planting removed as of event_date",
+        },
+      },
+      required: ["bed_id", "type", "crop", "event_date", "details", "final_harvest"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "complete_task",
     description: "Mark an open task as done. Use the task id from the open-task list in the garden context.",
     strict: true,

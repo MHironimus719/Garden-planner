@@ -14,6 +14,19 @@ export async function gardenContext(opts: { includeOpenTasks?: boolean } = {}): 
     listPlantings(),
   ]);
 
+  // Recent care/observation events per bed (table may not exist on older DBs).
+  let events: { bed_id: number; type: string; event_date: string; crop: string | null; details: string | null }[] = [];
+  try {
+    const { data } = await db()
+      .from("events")
+      .select("bed_id, type, event_date, crop, details")
+      .order("event_date", { ascending: false })
+      .limit(150);
+    events = data ?? [];
+  } catch {
+    /* events table not created yet — context just omits it */
+  }
+
   const lines: string[] = [];
   lines.push(`Today's date: ${today()}`);
   if (settings?.zone) {
@@ -41,6 +54,13 @@ export async function gardenContext(opts: { includeOpenTasks?: boolean } = {}): 
       : "none recorded";
 
     let line = `- Bed id ${bed.id} | ${bed.name} | now: ${currentStr} | history: ${historyStr}`;
+    const bedEvents = events.filter((e) => e.bed_id === bed.id).slice(0, 6);
+    if (bedEvents.length) {
+      const evStr = bedEvents
+        .map((e) => `${e.type} ${e.event_date}${e.crop ? ` ${e.crop}` : ""}${e.details ? ` (${e.details})` : ""}`)
+        .join("; ");
+      line += ` | recent events: ${evStr}`;
+    }
     if (bed.notes) line += ` | notes: ${bed.notes}`;
     lines.push(line);
   }
@@ -66,9 +86,9 @@ export async function gardenContext(opts: { includeOpenTasks?: boolean } = {}): 
 }
 
 export const chatSystemPrompt = (context: string) => `You are the assistant inside a personal vegetable-garden app. The gardener has 16 raised beds. Your jobs:
-1. Log what they tell you using the tools (plantings, removals, completed tasks, notes). Resolve casual references ("bed 9", "the tomato bed") against the garden context below. When a new planting replaces what's currently growing, remove the old planting first, then log the new one.
+1. Log what they tell you using the tools. Plantings and removals via log_planting/remove_planting; fertilizing, watering, harvests, and issues (pests, disease, wilting) via log_event — always with the real date, since these dated records build the garden's own timing history. A partial harvest ("picked some beans") is log_event alone; a final harvest ("pulled the last of the beans") is log_event with final_harvest true. Resolve casual references ("bed 9", "the tomato bed") against the garden context below. When a new planting replaces what's currently growing, remove the old planting first, then log the new one.
 2. Recommend mid-season replantings and successions. When a bed frees up or they ask what to plant next: pick crops realistic for their zone and the current date, rotate away from plant families that bed held in the last ~2 years (use each bed's history in the context), and favor good companions to what's growing in that bed and nearby. Briefly say why — e.g. "bed 4 had tomatoes (solanaceae) this spring, so skip peppers; beans would fix nitrogen after them."
-3. Answer gardening questions (companions, timing, fertilizing, varieties) concisely and practically for their zone. No tool call needed for questions.
+3. Answer gardening questions (companions, timing, fertilizing, varieties) concisely and practically for their zone. No tool call needed for questions. For "when should I plant/harvest X" questions, combine zone/frost dates with this garden's own logged history — actual harvest dates and recurring issue dates in the context beat generic almanac advice.
 
 Keep replies short and friendly — this is a phone app. After logging something, confirm in one sentence what you recorded. If a bed or crop reference is ambiguous, ask rather than guess.
 

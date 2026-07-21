@@ -53,6 +53,21 @@ create table if not exists tasks (
 );
 create index if not exists idx_tasks_open on tasks(due_start) where done_at is null;
 
+-- Dated care/observation log: fertilizing, watering, harvests, issues.
+-- Accumulates the real-world timing data (actual harvest windows, recurring
+-- pest dates) that sharpens future planting/harvest recommendations.
+create table if not exists events (
+  id          serial primary key,
+  bed_id      int not null references beds(id),
+  planting_id int references plantings(id),
+  type        text not null check (type in ('fertilize','water','harvest','issue')),
+  event_date  date not null,
+  crop        text,                                      -- null for whole-bed events (e.g. watering)
+  details     text,                                      -- fertilizer type/amount, harvest quantity, pest description
+  created_at  timestamptz default now()
+);
+create index if not exists idx_events_bed on events(bed_id, event_date desc);
+
 create table if not exists chat_log (
   id         serial primary key,
   role       text not null check (role in ('user','assistant')),

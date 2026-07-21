@@ -41,6 +41,46 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
       if (updErr) throw new Error(updErr.message);
       return `Marked ${data.map((p) => p.crop).join(", ")} removed from bed ${input.bed_id}.`;
     }
+    if (name === "log_event") {
+      // Link to the current planting of that crop when there is one, so events
+      // survive as history after the planting is closed out.
+      let plantingId: number | null = null;
+      if (input.crop) {
+        const { data } = await supabase
+          .from("plantings")
+          .select("id")
+          .eq("bed_id", input.bed_id)
+          .is("removed_date", null)
+          .ilike("crop", `%${input.crop}%`)
+          .limit(1);
+        plantingId = data?.[0]?.id ?? null;
+      }
+      const { error } = await supabase.from("events").insert({
+        bed_id: input.bed_id,
+        planting_id: plantingId,
+        type: input.type,
+        event_date: input.event_date,
+        crop: input.crop || null,
+        details: input.details || null,
+      });
+      if (error) {
+        if (/events.*(does not exist|schema cache)/i.test(error.message)) {
+          throw new Error(
+            "The events table doesn't exist yet — paste the updated scripts/schema.sql into the Supabase SQL editor and run it."
+          );
+        }
+        throw new Error(error.message);
+      }
+      let msg = `Logged ${input.type} for bed ${input.bed_id} on ${input.event_date}.`;
+      if (input.type === "harvest" && input.final_harvest && plantingId) {
+        const { error: closeErr } = await supabase
+          .from("plantings")
+          .update({ removed_date: input.event_date })
+          .eq("id", plantingId);
+        if (!closeErr) msg += " Final harvest — planting closed out.";
+      }
+      return msg;
+    }
     if (name === "complete_task") {
       const { error } = await supabase
         .from("tasks")
