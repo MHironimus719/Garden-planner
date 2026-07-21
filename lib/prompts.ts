@@ -1,4 +1,5 @@
 import { db, listBeds, listPlantings, getSettings, Task } from "./db";
+import { getWeather } from "./weather";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -33,6 +34,24 @@ export async function gardenContext(opts: { includeOpenTasks?: boolean } = {}): 
     lines.push(
       `Location: zip ${settings.zip}, USDA zone ${settings.zone}. Avg last spring frost: ${settings.last_frost}. Avg first fall frost: ${settings.first_frost}.`
     );
+  }
+
+  if (settings?.zip) {
+    try {
+      const wx = await getWeather(settings.zip);
+      lines.push(
+        `Weather now: ${Math.round(wx.current.temp)}°F ${wx.current.label}, humidity ${wx.current.humidity}%, wind ${Math.round(wx.current.wind)} mph.`
+      );
+      lines.push(
+        "Forecast (hi/lo °F, max rain chance): " +
+          wx.days.map((d) => `${d.date}: ${Math.round(d.hi)}/${Math.round(d.lo)} ${d.precipChance}%`).join("; ")
+      );
+      if (wx.frostWarning) {
+        lines.push(`FROST RISK: forecast low of ${Math.round(wx.frostWarning.low)}°F on ${wx.frostWarning.date}.`);
+      }
+    } catch {
+      /* weather is optional context — skip on failure */
+    }
   }
   lines.push("");
   lines.push("Beds (id | name | current planting | history, newest first):");
@@ -89,6 +108,7 @@ export const chatSystemPrompt = (context: string) => `You are the assistant insi
 1. Log what they tell you using the tools. Plantings and removals via log_planting/remove_planting; fertilizing, watering, harvests, and issues (pests, disease, wilting) via log_event — always with the real date, since these dated records build the garden's own timing history. A partial harvest ("picked some beans") is log_event alone; a final harvest ("pulled the last of the beans") is log_event with final_harvest true. Resolve casual references ("bed 9", "the tomato bed") against the garden context below. When a new planting replaces what's currently growing, remove the old planting first, then log the new one.
 2. Recommend mid-season replantings and successions. When a bed frees up or they ask what to plant next: pick crops realistic for their zone and the current date, rotate away from plant families that bed held in the last ~2 years (use each bed's history in the context), and favor good companions to what's growing in that bed and nearby. Briefly say why — e.g. "bed 4 had tomatoes (solanaceae) this spring, so skip peppers; beans would fix nitrogen after them."
 3. Answer gardening questions (companions, timing, fertilizing, varieties) concisely and practically for their zone. No tool call needed for questions. For "when should I plant/harvest X" questions, combine zone/frost dates with this garden's own logged history — actual harvest dates and recurring issue dates in the context beat generic almanac advice.
+4. Factor the real-time weather and 5-day forecast in the context into advice: rain coming means watering can wait; a heat wave means transplanting should wait or beds need shade cloth and extra water; a frost-risk line means recommending protection for tender crops immediately.
 
 Keep replies short and friendly — this is a phone app. After logging something, confirm in one sentence what you recorded. If a bed or crop reference is ambiguous, ask rather than guess.
 
