@@ -42,16 +42,20 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
       return `Marked ${data.map((p) => p.crop).join(", ")} removed from bed ${input.bed_id}.`;
     }
     if (name === "log_event") {
+      // The model occasionally emits markup artifacts in optional string fields —
+      // strip tags/newlines so junk never reaches the database.
+      const crop = String(input.crop ?? "").split("\n")[0].replace(/<[^>]*>?/g, "").trim();
+      const details = String(input.details ?? "").replace(/<[^>]*>?/g, "").trim();
       // Link to the current planting of that crop when there is one, so events
       // survive as history after the planting is closed out.
       let plantingId: number | null = null;
-      if (input.crop) {
+      if (crop) {
         const { data } = await supabase
           .from("plantings")
           .select("id")
           .eq("bed_id", input.bed_id)
           .is("removed_date", null)
-          .ilike("crop", `%${input.crop}%`)
+          .ilike("crop", `%${crop}%`)
           .limit(1);
         plantingId = data?.[0]?.id ?? null;
       }
@@ -60,8 +64,8 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
         planting_id: plantingId,
         type: input.type,
         event_date: input.event_date,
-        crop: input.crop || null,
-        details: input.details || null,
+        crop: crop || null,
+        details: details || null,
       });
       if (error) {
         if (/events.*(does not exist|schema cache)/i.test(error.message)) {
