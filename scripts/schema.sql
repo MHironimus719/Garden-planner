@@ -61,7 +61,7 @@ create table if not exists chat_log (
   created_at timestamptz default now()
 );
 
--- Seed the 15 beds if the table is empty
+-- Seed the 16 beds if the table is empty
 insert into beds (name, position)
-select 'Bed ' || n, n from generate_series(1, 15) n
+select 'Bed ' || n, n from generate_series(1, 16) n
 where not exists (select 1 from beds);

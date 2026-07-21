@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+const getSpeechRecognition = () =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+const emptySubscribe = () => () => {};
+const voiceSupportedSnapshot = () => !!getSpeechRecognition();
+const voiceSupportedServerSnapshot = () => false;
 
 export default function Chat({
   placeholder = "Tell me what you planted, or ask anything…",
@@ -16,7 +23,42 @@ export default function Chat({
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [listening, setListening] = useState(false);
+  const voiceSupported = useSyncExternalStore(emptySubscribe, voiceSupportedSnapshot, voiceSupportedServerSnapshot);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const dictationBaseRef = useRef(""); // input text present before dictation started
+
+  useEffect(() => () => recognitionRef.current?.abort(), []);
+
+  function toggleVoice() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    if (!recognitionRef.current) {
+      const SR = getSpeechRecognition();
+      if (!SR) return;
+      const rec = new SR();
+      rec.lang = navigator.language || "en-US";
+      rec.interimResults = true;
+      rec.continuous = true;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rec.onresult = (e: any) => {
+        let transcript = "";
+        for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+        setInput(`${dictationBaseRef.current} ${transcript}`.trimStart());
+      };
+      rec.onend = () => setListening(false);
+      rec.onerror = () => setListening(false);
+      recognitionRef.current = rec;
+    }
+    dictationBaseRef.current = input.trim();
+    recognitionRef.current.start();
+    setListening(true);
+  }
 
   useEffect(() => {
     if (!loadHistory) return;
@@ -33,6 +75,10 @@ export default function Chat({
     e.preventDefault();
     const text = input.trim();
     if (!text || busy) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+    }
     setInput("");
     setMessages((m) => [...m, { role: "user", content: text }]);
     setBusy(true);
@@ -79,6 +125,20 @@ export default function Chat({
           placeholder={placeholder}
           className="flex-1 rounded-full border border-stone-300 px-4 py-3 bg-white text-[15px]"
         />
+        {voiceSupported && (
+          <button
+            type="button"
+            onClick={toggleVoice}
+            aria-label={listening ? "Stop dictation" : "Dictate with your voice"}
+            className={`rounded-full px-4 py-3 border ${
+              listening
+                ? "bg-red-600 border-red-600 text-white animate-pulse"
+                : "bg-white border-stone-300"
+            }`}
+          >
+            🎤
+          </button>
+        )}
         <button
           type="submit"
           disabled={busy || !input.trim()}

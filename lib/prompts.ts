@@ -65,7 +65,7 @@ export async function gardenContext(opts: { includeOpenTasks?: boolean } = {}): 
   return lines.join("\n");
 }
 
-export const chatSystemPrompt = (context: string) => `You are the assistant inside a personal vegetable-garden app. The gardener has 15 raised beds. Your jobs:
+export const chatSystemPrompt = (context: string) => `You are the assistant inside a personal vegetable-garden app. The gardener has 16 raised beds. Your jobs:
 1. Log what they tell you using the tools (plantings, removals, completed tasks, notes). Resolve casual references ("bed 9", "the tomato bed") against the garden context below. When a new planting replaces what's currently growing, remove the old planting first, then log the new one.
 2. Answer gardening questions (companions, timing, fertilizing, varieties) concisely and practically for their zone. No tool call needed for questions.
 

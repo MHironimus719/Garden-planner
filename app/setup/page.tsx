@@ -118,7 +118,7 @@ export default function SetupPage() {
         <section>
           <h2 className="font-semibold text-lg mb-2">Name your beds</h2>
           <p className="text-sm text-stone-600 mb-4">
-            15 beds are ready. Rename any of them if you use names like &quot;Fence bed&quot; — or just keep the numbers.
+            16 beds are ready. Rename any of them if you use names like &quot;Fence bed&quot; — or just keep the numbers.
           </p>
           <ul className="space-y-2 mb-5 max-h-96 overflow-y-auto">
             {beds.map((bed) => (

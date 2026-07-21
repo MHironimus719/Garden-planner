@@ -1,6 +1,6 @@
 # 🪴 Garden
 
-A personal AI-powered vegetable-garden planner for 15 raised beds. Claude plans each season
+A personal AI-powered vegetable-garden planner for 16 raised beds. Claude plans each season
 (rotation-aware, companion-aware), generates the week-by-week task schedule, and logs everything
 you tell it in plain English. Built to be dead simple on a phone or iPad.
 
@@ -9,7 +9,7 @@ you tell it in plain English. Built to be dead simple on a phone or iPad.
 ### 1. Supabase (free database)
 
 1. Go to [supabase.com](https://supabase.com) → create a free account → **New project** (any name, e.g. `garden`).
-2. In the project: **SQL Editor** → paste the whole contents of `scripts/schema.sql` → **Run**. This creates the tables and your 15 beds.
+2. In the project: **SQL Editor** → paste the whole contents of `scripts/schema.sql` → **Run**. This creates the tables and your 16 beds.
 3. **Project Settings → API**: copy the **Project URL** and the **`service_role` secret key**.
 
 ### 2. Anthropic API key
