@@ -12,18 +12,28 @@ const typeIcons: Record<string, string> = {
   other: "📌",
 };
 
+type Weather = {
+  place: string;
+  current: { temp: number; feelsLike: number; humidity: number; wind: number; label: string; icon: string };
+  today: { hi: number; lo: number; precipChance: number };
+  frostWarning: { date: string; low: number } | null;
+};
+
 export default function TodayPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
+  const [weather, setWeather] = useState<Weather | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [t, b] = await Promise.all([
+    const [t, b, w] = await Promise.all([
       fetch("/api/tasks?due=week").then((r) => r.json()),
       fetch("/api/beds").then((r) => r.json()),
+      fetch("/api/weather").then((r) => r.json()).catch(() => null),
     ]);
     if (Array.isArray(t)) setTasks(t);
     if (Array.isArray(b)) setBeds(b);
+    if (w && !w.error) setWeather(w);
     setLoading(false);
   }, []);
 
@@ -92,6 +102,34 @@ export default function TodayPage() {
     <main className="px-4 pt-6">
       <h1 className="text-2xl font-bold">Today</h1>
       <p className="text-stone-500 mb-5">{dateStr}</p>
+
+      {weather && (
+        <div className="rounded-2xl bg-sky-50 border border-sky-200 p-4 mb-5">
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">{weather.current.icon}</span>
+            <div className="flex-1">
+              <p className="text-2xl font-bold leading-none">{Math.round(weather.current.temp)}°F</p>
+              <p className="text-sm text-stone-600 mt-1">
+                {weather.current.label} · feels like {Math.round(weather.current.feelsLike)}°
+              </p>
+            </div>
+            <div className="text-right text-sm text-stone-600 leading-relaxed">
+              <p>
+                H {Math.round(weather.today.hi)}° / L {Math.round(weather.today.lo)}°
+              </p>
+              <p>💧 {weather.today.precipChance}% rain</p>
+              <p>💨 {Math.round(weather.current.wind)} mph</p>
+            </div>
+          </div>
+          {weather.frostWarning && (
+            <p className="mt-3 rounded-lg bg-blue-100 text-blue-900 text-sm px-3 py-2">
+              ❄️ Frost risk{" "}
+              {new Date(`${weather.frostWarning.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "long" })} —
+              low of {Math.round(weather.frostWarning.low)}°. Cover tender plants.
+            </p>
+          )}
+        </div>
+      )}
 
       {loading && <p className="text-stone-400">Loading…</p>}
 
