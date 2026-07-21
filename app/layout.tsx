@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import TabNav from "@/components/TabNav";
+import ChatSheet from "@/components/ChatSheet";
 
 export const metadata: Metadata = {
   title: "Garden",
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className="min-h-full bg-stone-50 text-stone-900 antialiased">
         <div className="mx-auto max-w-2xl min-h-dvh pb-24">{children}</div>
         <TabNav />
+        <ChatSheet />
       </body>
     </html>
   );

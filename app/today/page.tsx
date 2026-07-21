@@ -29,6 +29,8 @@ export default function TodayPage() {
 
   useEffect(() => {
     load();
+    window.addEventListener("garden:changed", load); // assistant logged something in the chat sheet
+    return () => window.removeEventListener("garden:changed", load);
   }, [load]);
 
   async function toggle(task: Task) {

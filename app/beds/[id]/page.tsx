@@ -25,6 +25,8 @@ export default function BedDetailPage() {
 
   useEffect(() => {
     load();
+    window.addEventListener("garden:changed", load); // assistant logged something in the chat sheet
+    return () => window.removeEventListener("garden:changed", load);
   }, [load]);
 
   const current = plantings.filter((p) => !p.removed_date);

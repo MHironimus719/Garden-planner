@@ -15,10 +15,12 @@ export default function Chat({
   placeholder = "Tell me what you planted, or ask anything…",
   onAction,
   loadHistory = true,
+  formClassName = "sticky bottom-24",
 }: {
   placeholder?: string;
   onAction?: () => void; // called after the assistant makes DB changes
   loadHistory?: boolean;
+  formClassName?: string; // positioning of the input row (overridden inside the chat sheet)
 }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -118,7 +120,7 @@ export default function Chat({
         )}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={send} className="flex gap-2 sticky bottom-24">
+      <form onSubmit={send} className={`flex gap-2 ${formClassName}`}>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}

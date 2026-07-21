@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { Bed, Planting } from "@/lib/db";
 import { familyColor } from "@/lib/families";
@@ -10,7 +10,7 @@ export default function BedsPage() {
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     Promise.all([
       fetch("/api/beds").then((r) => r.json()),
       fetch("/api/plantings?current=1").then((r) => r.json()),
@@ -20,6 +20,12 @@ export default function BedsPage() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    load();
+    window.addEventListener("garden:changed", load); // assistant logged something in the chat sheet
+    return () => window.removeEventListener("garden:changed", load);
+  }, [load]);
 
   return (
     <main className="px-4 pt-6">
