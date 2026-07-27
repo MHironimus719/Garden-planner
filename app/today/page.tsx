@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { Task, Bed } from "@/lib/db";
 
 const typeIcons: Record<string, string> = {
@@ -11,6 +11,8 @@ const typeIcons: Record<string, string> = {
   water: "💧",
   other: "📌",
 };
+
+type Suggestion = { icon: string; title: string; detail: string };
 
 type Weather = {
   place: string;
@@ -23,9 +25,32 @@ export default function TodayPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
   const [weather, setWeather] = useState<Weather | null>(null);
+  const [sugs, setSugs] = useState<Suggestion[] | null>(null);
+  const [briefingPending, setBriefingPending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const generatingRef = useRef(false);
 
   const load = useCallback(async () => {
+    // The morning briefing loads independently so tasks render immediately;
+    // if the cron hasn't generated it yet, ask the server to make one now.
+    fetch("/api/suggestions")
+      .then((r) => r.json())
+      .then(async (s) => {
+        if (Array.isArray(s.suggestions)) {
+          setSugs(s.suggestions);
+          return;
+        }
+        if (generatingRef.current) return;
+        generatingRef.current = true;
+        setBriefingPending(true);
+        const gen = await fetch("/api/suggestions", { method: "POST" })
+          .then((r) => r.json())
+          .catch(() => null);
+        if (Array.isArray(gen?.suggestions)) setSugs(gen.suggestions);
+        setBriefingPending(false);
+      })
+      .catch(() => {});
+
     const [t, b, w] = await Promise.all([
       fetch("/api/tasks?due=week").then((r) => r.json()),
       fetch("/api/beds").then((r) => r.json()),
@@ -128,6 +153,25 @@ export default function TodayPage() {
               low of {Math.round(weather.frostWarning.low)}°. Cover tender plants.
             </p>
           )}
+        </div>
+      )}
+
+      {(Boolean(sugs?.length) || briefingPending) && (
+        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 mb-5">
+          <h2 className="text-sm font-semibold text-amber-900 uppercase tracking-wide mb-2.5">🌱 Garden assistant</h2>
+          {briefingPending && !sugs && (
+            <p className="text-sm text-amber-800 animate-pulse">Looking over the garden…</p>
+          )}
+          <ul className="space-y-3">
+            {sugs?.map((s, i) => (
+              <li key={i}>
+                <p className="font-medium leading-snug">
+                  {s.icon} {s.title}
+                </p>
+                <p className="text-sm text-stone-600 mt-0.5">{s.detail}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

@@ -137,6 +137,41 @@ export const taskScheduleJsonSchema = {
   additionalProperties: false,
 } as const;
 
+// ---------- Daily proactive suggestions ----------
+
+export const suggestionZ = z.object({
+  icon: z.string(),
+  title: z.string(),
+  detail: z.string(),
+});
+export const suggestionsZ = z.object({ suggestions: z.array(suggestionZ) });
+export type Suggestion = z.infer<typeof suggestionZ>;
+
+export const suggestionsJsonSchema = {
+  type: "object",
+  properties: {
+    suggestions: {
+      type: "array",
+      description: "2-5 proactive suggestions, most important first. Fewer is better than padded.",
+      items: {
+        type: "object",
+        properties: {
+          icon: { type: "string", description: "A single emoji that fits the suggestion" },
+          title: { type: "string", description: "Short imperative headline, e.g. 'Water beds 3-6 this morning'" },
+          detail: {
+            type: "string",
+            description: "1-2 sentences of why now, citing this garden's own data (dates, events, forecast).",
+          },
+        },
+        required: ["icon", "title", "detail"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["suggestions"],
+  additionalProperties: false,
+} as const;
+
 // ---------- Chat tools (strict tool use) ----------
 
 export const chatTools = [

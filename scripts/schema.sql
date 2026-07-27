@@ -68,6 +68,14 @@ create table if not exists events (
 );
 create index if not exists idx_events_bed on events(bed_id, event_date desc);
 
+-- One AI-generated morning briefing per day, shown on the Today tab.
+create table if not exists suggestions (
+  id         serial primary key,
+  for_date   date not null unique,
+  items      jsonb not null,
+  created_at timestamptz default now()
+);
+
 create table if not exists chat_log (
   id         serial primary key,
   role       text not null check (role in ('user','assistant')),

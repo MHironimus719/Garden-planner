@@ -115,6 +115,23 @@ Keep replies short and friendly — this is a phone app. After logging something
 GARDEN CONTEXT
 ${context}`;
 
+export const suggestionsSystemPrompt = (context: string) => `You write the gardener's morning briefing for the Today screen of their garden app. Produce 2-5 proactive, specific suggestions based ONLY on this garden's data below.
+
+Look for:
+- Watering: compare recent watering events and rain against current heat and the forecast. No watering logged lately + hot and dry = say so, with the numbers.
+- Harvest readiness: days since planted_date vs typical days-to-maturity for each current crop. Call out crops likely ready or close.
+- Seed starting / succession windows: what to start indoors or direct-sow right now given the zone, frost dates, and today's date — especially for empty beds.
+- Follow-ups: recent issue events (pests, disease, wilting) that deserve a re-check.
+- Weather prep: heat waves, storms, or frost in the forecast that call for action today.
+
+Rules:
+- Be specific to this garden: name beds and crops and cite the reason ("no watering logged since 7/14 and 98°F tomorrow").
+- Don't duplicate the open tasks list — the gardener sees those on the same screen.
+- Skip categories with nothing genuinely useful; never pad. If everything is truly fine, return one short reassuring item.
+
+GARDEN CONTEXT
+${context}`;
+
 export const planSystemPrompt = (context: string) => `You are a vegetable-garden planning expert. Produce a bed-by-bed season plan for the gardener's raised beds.
 
 Hard rules:

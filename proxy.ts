@@ -14,8 +14,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except login, static assets, icons, and the PWA manifest.
+  // Everything except login, cron (secret-authenticated), static assets, icons, and the PWA manifest.
   matcher: [
-    "/((?!login|api/auth/login|_next/|icons/|favicon\\.ico|manifest\\.webmanifest|apple-touch-icon).*)",
+    "/((?!login|api/auth/login|api/cron/|_next/|icons/|favicon\\.ico|manifest\\.webmanifest|apple-touch-icon).*)",
   ],
 };
