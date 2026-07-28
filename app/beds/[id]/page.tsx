@@ -32,13 +32,20 @@ export default function BedDetailPage() {
   const current = plantings.filter((p) => !p.removed_date);
   const history = plantings.filter((p) => p.removed_date);
 
-  async function removePlanting(p: Planting) {
-    if (!confirm(`Mark ${p.crop} as removed?`)) return;
+  async function retirePlanting(p: Planting) {
+    if (!confirm(`Retire ${p.crop} to this bed's history? (It stays in the rotation record.)`)) return;
     await fetch(`/api/plantings/${p.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ removed_date: new Date().toISOString().slice(0, 10) }),
     });
+    load();
+  }
+
+  async function deletePlanting(p: Planting) {
+    if (!confirm(`Permanently delete ${p.crop}? Use this only for entries added by mistake — nothing is kept in history.`))
+      return;
+    await fetch(`/api/plantings/${p.id}`, { method: "DELETE" });
     load();
   }
 
@@ -117,10 +124,17 @@ export default function BedDetailPage() {
                 <p className="text-sm text-stone-500">Planted {p.planted_date}</p>
               </div>
               <button
-                onClick={() => removePlanting(p)}
+                onClick={() => retirePlanting(p)}
                 className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-600 active:bg-stone-100"
               >
-                Remove
+                🧺 Retire
+              </button>
+              <button
+                onClick={() => deletePlanting(p)}
+                aria-label={`Delete ${p.crop} (mistake — no history kept)`}
+                className="px-1.5 py-2 text-sm text-stone-300 active:text-red-600"
+              >
+                ✕
               </button>
             </li>
           ))}

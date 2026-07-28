@@ -9,8 +9,19 @@ export const maxDuration = 120;
 
 type ToolAction = { tool: string; input: Record<string, unknown>; result: string };
 
-async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
+// The model occasionally emits markup artifacts in string fields — strip
+// tags and collapse whitespace on every tool input so junk never reaches the DB.
+function cleanInput(input: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(input)) {
+    out[k] = typeof v === "string" ? v.replace(/<[^>]*>?/g, "").replace(/\s+/g, " ").trim() : v;
+  }
+  return out;
+}
+
+async function executeTool(name: string, rawInput: Record<string, unknown>): Promise<string> {
   const supabase = db();
+  const input = cleanInput(rawInput);
   try {
     if (name === "log_planting") {
       const { error } = await supabase.from("plantings").insert({
@@ -42,10 +53,8 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
       return `Marked ${data.map((p) => p.crop).join(", ")} removed from bed ${input.bed_id}.`;
     }
     if (name === "log_event") {
-      // The model occasionally emits markup artifacts in optional string fields —
-      // strip tags/newlines so junk never reaches the database.
-      const crop = String(input.crop ?? "").split("\n")[0].replace(/<[^>]*>?/g, "").trim();
-      const details = String(input.details ?? "").replace(/<[^>]*>?/g, "").trim();
+      const crop = String(input.crop ?? "");
+      const details = String(input.details ?? "");
       // Link to the current planting of that crop when there is one, so events
       // survive as history after the planting is closed out.
       let plantingId: number | null = null;

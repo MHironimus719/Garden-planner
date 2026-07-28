@@ -15,3 +15,16 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
+
+// Hard delete, for data-entry mistakes. Normal end-of-life is PATCH removed_date,
+// which keeps the planting in the bed's history.
+export async function DELETE(_request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  const supabase = db();
+  // Detach dependent rows first (no cascade in the schema); keep the events themselves.
+  await supabase.from("events").update({ planting_id: null }).eq("planting_id", Number(id));
+  await supabase.from("tasks").update({ planting_id: null }).eq("planting_id", Number(id));
+  const { error } = await supabase.from("plantings").delete().eq("id", Number(id));
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
