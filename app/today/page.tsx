@@ -30,6 +30,22 @@ export default function TodayPage() {
   const [loading, setLoading] = useState(true);
   const generatingRef = useRef(false);
 
+  const refreshBriefing = useCallback(async () => {
+    if (generatingRef.current) return;
+    generatingRef.current = true;
+    setBriefingPending(true);
+    const gen = await fetch("/api/suggestions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force: true }),
+    })
+      .then((r) => r.json())
+      .catch(() => null);
+    if (Array.isArray(gen?.suggestions)) setSugs(gen.suggestions);
+    setBriefingPending(false);
+    generatingRef.current = false;
+  }, []);
+
   const load = useCallback(async () => {
     // The morning briefing loads independently so tasks render immediately;
     // if the cron hasn't generated it yet, ask the server to make one now.
@@ -48,6 +64,7 @@ export default function TodayPage() {
           .catch(() => null);
         if (Array.isArray(gen?.suggestions)) setSugs(gen.suggestions);
         setBriefingPending(false);
+        generatingRef.current = false;
       })
       .catch(() => {});
 
@@ -158,7 +175,17 @@ export default function TodayPage() {
 
       {(Boolean(sugs?.length) || briefingPending) && (
         <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 mb-5">
-          <h2 className="text-sm font-semibold text-amber-900 uppercase tracking-wide mb-2.5">🌱 Garden assistant</h2>
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-sm font-semibold text-amber-900 uppercase tracking-wide">🌱 Garden assistant</h2>
+            <button
+              onClick={refreshBriefing}
+              disabled={briefingPending}
+              aria-label="Refresh the briefing with the latest garden data"
+              className={`text-amber-700 text-base px-1.5 -my-1 ${briefingPending ? "animate-spin" : "active:text-amber-900"}`}
+            >
+              ↻
+            </button>
+          </div>
           {briefingPending && !sugs && (
             <p className="text-sm text-amber-800 animate-pulse">Looking over the garden…</p>
           )}

@@ -14,7 +14,17 @@ type ToolAction = { tool: string; input: Record<string, unknown>; result: string
 function cleanInput(input: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(input)) {
-    out[k] = typeof v === "string" ? v.replace(/<[^>]*>?/g, "").replace(/\s+/g, " ").trim() : v;
+    if (typeof v !== "string") {
+      out[k] = v;
+      continue;
+    }
+    let s = v.replace(/<[^>]*>?/g, "").replace(/\s+/g, " ").trim();
+    // Artifacts sometimes leave a leaked value behind (e.g. a date in the crop
+    // field). Names never look like dates or tool syntax — blank those out.
+    if (["crop", "variety", "family"].includes(k) && (/^\d{4}-\d{2}-\d{2}$/.test(s) || /antml|parameter/i.test(s))) {
+      s = "";
+    }
+    out[k] = s;
   }
   return out;
 }
